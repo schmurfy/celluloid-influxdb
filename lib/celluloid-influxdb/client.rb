@@ -17,7 +17,7 @@ module Celluloid
 
     def create_database(name)
       url = full_url("db")
-      data = JSON.generate({:name => name})
+      data = MultiJson.dump({:name => name})
       post(url, data)
     end
 
@@ -31,13 +31,13 @@ module Celluloid
 
     def create_cluster_admin(username, password)
       url = full_url("cluster_admins")
-      data = JSON.generate({:name => username, :password => password})
+      data = MultiJson.dump({:name => username, :password => password})
       post(url, data)
     end
 
     def update_cluster_admin(username, password)
       url = full_url("cluster_admins/#{username}")
-      data = JSON.generate({:password => password})
+      data = MultiJson.dump({:password => password})
       post(url, data)
     end
 
@@ -51,13 +51,13 @@ module Celluloid
 
     def create_database_user(database, username, password)
       url = full_url("db/#{database}/users")
-      data = JSON.generate({:name => username, :password => password})
+      data = MultiJson.dump({:name => username, :password => password})
       post(url, data)
     end
 
     def update_database_user(database, username, options = {})
       url = full_url("db/#{database}/users/#{username}")
-      data = JSON.generate(options)
+      data = MultiJson.dump(options)
       post(url, data)
     end
 
@@ -94,7 +94,7 @@ module Celluloid
 
     def _write(payload)
       url = full_url("db/#{@database}/series")
-      data = JSON.generate(payload)
+      data = MultiJson.dump(payload)
 
       headers = {"Content-Type" => "application/json"}
       post(url, data, headers)
@@ -145,7 +145,7 @@ module Celluloid
     
     def handle_return!(response, json = false)
       if response.status == 200
-        return json ? JSON.parse(response.body) : response
+        return json ? MultiJson.load(response.body) : response
       elsif response.status == 401
         raise AuthenticationError.new(response.body)
       else
