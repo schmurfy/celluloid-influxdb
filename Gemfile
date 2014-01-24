@@ -4,6 +4,7 @@ gemspec
 
 gem 'rake'
 gem 'oj'
+gem 'http', github: 'tarcieri/http'
 
 
 group(:test) do

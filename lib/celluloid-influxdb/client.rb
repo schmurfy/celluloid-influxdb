@@ -15,63 +15,33 @@ module Celluloid
       @password = password
     end
 
-    def create_database(name)
-      url = full_url("db")
-      data = MultiJson.dump({:name => name})
-      post(url, data)
-    end
-
-    def delete_database(name)
-      delete full_url("db/#{name}")
-    end
-
     def get_database_list
       get full_url("db")
     end
 
-    def create_cluster_admin(username, password)
-      url = full_url("cluster_admins")
-      data = MultiJson.dump({:name => username, :password => password})
-      post(url, data)
-    end
+    # def create_database_user(database, username, password)
+    #   url = full_url("db/#{database}/users")
+    #   data = MultiJson.dump({:name => username, :password => password})
+    #   post(url, data)
+    # end
 
-    def update_cluster_admin(username, password)
-      url = full_url("cluster_admins/#{username}")
-      data = MultiJson.dump({:password => password})
-      post(url, data)
-    end
+    # def update_database_user(database, username, options = {})
+    #   url = full_url("db/#{database}/users/#{username}")
+    #   data = MultiJson.dump(options)
+    #   post(url, data)
+    # end
 
-    def delete_cluster_admin(username)
-      delete full_url("cluster_admins/#{username}")
-    end
+    # def delete_database_user(database, username)
+    #   delete full_url("db/#{database}/users/#{username}")
+    # end
 
-    def get_cluster_admin_list
-      get full_url("cluster_admins")
-    end
+    # def get_database_user_list(database)
+    #   get full_url("db/#{database}/users")
+    # end
 
-    def create_database_user(database, username, password)
-      url = full_url("db/#{database}/users")
-      data = MultiJson.dump({:name => username, :password => password})
-      post(url, data)
-    end
-
-    def update_database_user(database, username, options = {})
-      url = full_url("db/#{database}/users/#{username}")
-      data = MultiJson.dump(options)
-      post(url, data)
-    end
-
-    def delete_database_user(database, username)
-      delete full_url("db/#{database}/users/#{username}")
-    end
-
-    def get_database_user_list(database)
-      get full_url("db/#{database}/users")
-    end
-
-    def alter_database_privilege(database, username, admin=true)
-      update_database_user(database, username, :admin => admin)
-    end
+    # def alter_database_privilege(database, username, admin=true)
+    #   update_database_user(database, username, :admin => admin)
+    # end
 
     def write_point(name, data, async=false)
       data = data.is_a?(Array) ? data : [data]
@@ -128,28 +98,30 @@ module Celluloid
     AuthenticationError = Class.new(Error)
     
     def get(url)
-      ret = HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
-      handle_return!(ret.response, true)
+      response = HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
+      handle_return!(response, true)
     end
 
     def post(url, data, headers = {})
       headers.merge!( "Content-Type" => "application/json" )
-      response = HTTP.post(url, socket_class: Celluloid::IO::TCPSocket, headers: headers, body: data).response
+      response = HTTP.post(url, socket_class: Celluloid::IO::TCPSocket, headers: headers, body: data)
       handle_return!(response)
     end
 
     def delete(url)
-      ret = HTTP.delete(url, socket_class: Celluloid::IO::TCPSocket)
-      handle_return!(ret.response)
+      response = HTTP.delete(url, socket_class: Celluloid::IO::TCPSocket)
+      handle_return!(response)
     end
     
     def handle_return!(response, json = false)
+      data = response.to_s
+      
       if response.status == 200
-        return json ? MultiJson.load(response.body) : response
+        return json ? MultiJson.load(data) : data
       elsif response.status == 401
-        raise AuthenticationError.new(response.body)
+        raise AuthenticationError.new(data)
       else
-        raise Error.new(response.body)
+        raise Error.new(data)
       end
     end
 
