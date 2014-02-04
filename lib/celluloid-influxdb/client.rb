@@ -71,7 +71,7 @@ module Celluloid
     end
 
     def query(query)
-      url = URI.encode full_url("db/#{@database}/series", "q=#{query}")
+      url = URI.encode full_url("db/#{@database}/series", "chunked=false&q=#{query}")
       series = get(url)
 
       if block_given?
@@ -97,20 +97,29 @@ module Celluloid
     Error = Class.new(RuntimeError)
     AuthenticationError = Class.new(Error)
     
+    def request(method, uri, options = {})
+      cl = HTTP::Client.new(options.merge(socket_class: Celluloid::IO::TCPSocket))
+      ret = cl.request(method, uri)
+      yield(ret).tap{ cl.send(:finish_response) }
+    end
+    
     def get(url)
-      response = HTTP.get(url, socket_class: Celluloid::IO::TCPSocket)
-      handle_return!(response, true)
+      request(:get, url) do |response|
+        handle_return!(response, true)
+      end
     end
 
     def post(url, data, headers = {})
       headers.merge!( "Content-Type" => "application/json" )
-      response = HTTP.post(url, socket_class: Celluloid::IO::TCPSocket, headers: headers, body: data)
-      handle_return!(response)
+      request(:post, url, headers: headers, body: data) do |response|
+        handle_return!(response)
+      end
     end
 
     def delete(url)
-      response = HTTP.delete(url, socket_class: Celluloid::IO::TCPSocket)
-      handle_return!(response)
+      request(:delete, url) do |response|
+        handle_return!(response)
+      end
     end
     
     def handle_return!(response, json = false)
