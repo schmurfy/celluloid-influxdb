@@ -43,31 +43,25 @@ module Celluloid
     #   update_database_user(database, username, :admin => admin)
     # end
 
-    def write_point(name, data, async=false)
-      data = data.is_a?(Array) ? data : [data]
-      columns = data.reduce(:merge).keys.sort {|a,b| a.to_s <=> b.to_s}
-      payload = {:name => name, :points => [], :columns => columns}
-
-      data.each do |p|
-        point = []
-        columns.each { |c| point << p[c] }
-        payload[:points].push point
-      end
-
-      if async
-        @worker = InfluxDB::Worker.new if @worker.nil?
-        @worker.queue.push(payload)
-      else
-        _write([payload])
-      end
-    end
-
-    def _write(payload)
+    def write_points(queries = [])
+      json = []
+      
       url = full_url("db/#{@database}/series")
-      data = MultiJson.dump(payload)
+      
+      queries.each do |(name, points)|
+        points = Array(points)
+        columns = points.reduce(:merge).keys
+        payload = {name: name, points: [], columns: columns}
 
-      headers = {"Content-Type" => "application/json"}
-      post(url, data, headers)
+        points.each do |p|
+          payload[:points].push( columns.map{|c| p[c]} )
+        end
+        
+        json << payload
+      end
+      
+      post_data = MultiJson.dump(json)
+      post(url, post_data, "Content-Type" => "application/json")
     end
 
     def query(query)
