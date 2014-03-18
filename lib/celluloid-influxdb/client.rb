@@ -43,10 +43,10 @@ module Celluloid
     #   update_database_user(database, username, :admin => admin)
     # end
 
-    def write_points(queries = [])
+    def write_points(queries = [], time_precision: 's')
       json = []
       
-      url = full_url("db/#{@database}/series")
+      url = full_url("db/#{@database}/series", "time_precision=#{time_precision}")
       
       queries.each do |(name, points)|
         points = Array(points)
